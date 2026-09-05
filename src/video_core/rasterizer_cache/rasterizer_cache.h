@@ -436,6 +436,9 @@ template <class T>
 void RasterizerCache<T>::CopySurface(Surface& src_surface, Surface& dst_surface,
                                      SurfaceInterval copy_interval) {
     MICROPROFILE_SCOPE(RasterizerCache_CopySurface);
+    const DebugScope scope{runtime, Common::Vec4f{1.f, 1.f, 0.f, 1.f},
+                           "RasterizerCache::CopySurface"};
+
     const PAddr copy_addr = copy_interval.lower();
     const SurfaceParams subrect_params = dst_surface.FromInterval(copy_interval);
     ASSERT(subrect_params.GetInterval() == copy_interval);
@@ -1022,6 +1025,9 @@ void RasterizerCache<T>::ValidateSurface(SurfaceId surface_id, PAddr addr, u32 s
             continue;
         }
 
+        // Slow path, download, re-encode, and upload
+        const DebugScope slow_scope{runtime, Common::Vec4f{1.f, 0.f, 0.f, 1.f},
+                                    "RasterizerCache::ValidateSurface(Slow reinterpret path)"};
         FlushRegion(params.addr, params.size);
         if (!use_custom_textures || !UploadCustomSurface(surface_id, interval)) {
             UploadSurface(surface, interval);
@@ -1042,6 +1048,10 @@ void RasterizerCache<T>::UploadSurface(Surface& surface, SurfaceInterval interva
 
     const SurfaceParams load_info = surface.FromInterval(interval);
     ASSERT(load_info.addr >= surface.addr && load_info.end <= surface.end);
+
+    const DebugScope scope{runtime, Common::Vec4f{1.f, 1.f, 0.f, 1.f},
+                           "RasterizerCache::UploadSurface ({:#x} to {:#x})", load_info.addr,
+                           load_info.end};
 
     const auto staging = runtime.FindStaging(
         load_info.width * load_info.height * surface.GetInternalBytesPerPixel(), true);
@@ -1144,6 +1154,10 @@ void RasterizerCache<T>::DownloadSurface(Surface& surface, SurfaceInterval inter
     const u32 flush_end = boost::icl::last_next(interval);
     ASSERT(flush_start >= surface.addr && flush_end <= surface.end);
 
+    const DebugScope scope{runtime, Common::Vec4f{1.f, 1.f, 0.f, 1.f},
+                           "RasterizerCache::DownloadSurface ({:#x} to {:#x})", flush_start,
+                           flush_end};
+
     const auto staging = runtime.FindStaging(
         flush_info.width * flush_info.height * surface.GetInternalBytesPerPixel(), false);
 
@@ -1203,6 +1217,8 @@ bool RasterizerCache<T>::ValidateByReinterpretation(Surface& surface, SurfacePar
     SurfaceId reinterpret_id =
         FindMatch<MatchFlags::Reinterpret>(params, ScaleMatch::Ignore, interval);
     if (reinterpret_id) {
+        const DebugScope scope{runtime, Common::Vec4f{1.f, 1.f, 0.f, 1.f},
+                               "RasterizerCache::ValidateByReinterpretation"};
         Surface& src_surface = slot_surfaces[reinterpret_id];
         const SurfaceInterval copy_interval = src_surface.GetCopyableInterval(params);
         if (boost::icl::is_empty(copy_interval & interval)) {
@@ -1271,7 +1287,6 @@ void RasterizerCache<T>::FlushRegion(PAddr addr, u32 size, SurfaceId flush_surfa
 
     const SurfaceInterval flush_interval(addr, addr + size);
     SurfaceRegions flushed_intervals;
-
     for (const auto& [region, surface_id] : RangeFromInterval(dirty_regions, flush_interval)) {
         if (flush_surface_id && surface_id != flush_surface_id) {
             continue;
@@ -1283,10 +1298,6 @@ void RasterizerCache<T>::FlushRegion(PAddr addr, u32 size, SurfaceId flush_surfa
         const auto interval = size <= 8 ? region : region & flush_interval;
         Surface& surface = slot_surfaces[surface_id];
         ASSERT_MSG(surface.IsRegionValid(interval), "Region owner has invalid regions");
-
-        const DebugScope scope{runtime, Common::Vec4f{0.f, 0.f, 0.f, 1.f},
-                               "RasterizerCache::FlushRegion (from {:#x} to {:#x})",
-                               interval.lower(), interval.upper()};
 
         SCOPE_EXIT({ flushed_intervals += interval; });
         if (surface.type == SurfaceType::Fill) {
