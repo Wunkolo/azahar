@@ -237,15 +237,17 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
                               16} {
 
     compute_pipeline_layout =
-        device.createPipelineLayout(PipelineLayoutCreateInfo(&compute_provider.Layout(), true));
-    compute_buffer_pipeline_layout = device.createPipelineLayout(
-        PipelineLayoutCreateInfo(&compute_buffer_provider.Layout(), true));
-    two_textures_pipeline_layout =
-        device.createPipelineLayout(PipelineLayoutCreateInfo(&two_textures_provider.Layout()));
-    single_texture_pipeline_layout = device.createPipelineLayout(
-        PipelineLayoutCreateInfo(&single_texture_provider.Layout(), false, true));
-    three_textures_pipeline_layout = device.createPipelineLayout(
-        PipelineLayoutCreateInfo(&three_textures_provider.Layout(), false, true));
+        MakePipelineLayout(compute_provider.Layout(), "BlitHelper: compute_pipeline_layout", true);
+    compute_buffer_pipeline_layout = MakePipelineLayout(
+        compute_buffer_provider.Layout(), "BlitHelper: compute_buffer_pipeline_layout", true);
+    single_texture_pipeline_layout =
+        MakePipelineLayout(single_texture_provider.Layout(),
+                           "BlitHelper: single_texture_pipeline_layout", false, true);
+    two_textures_pipeline_layout = MakePipelineLayout(two_textures_provider.Layout(),
+                                                      "BlitHelper: two_textures_pipeline_layout");
+    three_textures_pipeline_layout =
+        MakePipelineLayout(three_textures_provider.Layout(),
+                           "BlitHelper: three_textures_pipeline_layout", false, true);
 
     // Create shader modules
     full_screen_vert =
@@ -315,15 +317,6 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
     }
 
     if (instance.HasDebuggingToolAttached()) {
-        SetObjectName(device, compute_pipeline_layout, "BlitHelper: compute_pipeline_layout");
-        SetObjectName(device, compute_buffer_pipeline_layout,
-                      "BlitHelper: compute_buffer_pipeline_layout");
-        SetObjectName(device, two_textures_pipeline_layout,
-                      "BlitHelper: two_textures_pipeline_layout");
-        SetObjectName(device, single_texture_pipeline_layout,
-                      "BlitHelper: single_texture_pipeline_layout");
-        SetObjectName(device, three_textures_pipeline_layout,
-                      "BlitHelper: three_textures_pipeline_layout");
         SetObjectName(device, d24s8_to_rgba8_pipeline, "BlitHelper: d24s8_to_rgba8_pipeline");
         if (d24s8_to_rgba8_ms_pipeline) {
             SetObjectName(device, d24s8_to_rgba8_ms_pipeline,
@@ -736,10 +729,28 @@ void BlitHelper::ResolveTexture(Surface& surface) {
     });
 }
 
+vk::PipelineLayout BlitHelper::MakePipelineLayout(vk::DescriptorSetLayout descriptor_layout,
+                                                  std::string_view debug_name, bool compute,
+                                                  bool filter) const {
+    vk::PipelineLayout new_pipeline_layout;
+    try {
+        new_pipeline_layout = device.createPipelineLayout(
+            PipelineLayoutCreateInfo(&descriptor_layout, compute, filter));
+    } catch (vk::SystemError& err) {
+        LOG_ERROR(Render_Vulkan, "{}", err.what());
+    }
+
+    if (instance.HasDebuggingToolAttached() && new_pipeline_layout && !debug_name.empty()) {
+        SetObjectName(device, new_pipeline_layout, debug_name);
+    }
+
+    return new_pipeline_layout;
+}
+
 vk::ShaderModule BlitHelper::MakeShaderModule(std::string_view code, vk::ShaderStageFlagBits stage,
                                               std::string_view debug_name) const {
     vk::ShaderModule new_module = Compile(code, stage, device);
-    if (new_module && instance.HasDebuggingToolAttached()) {
+    if (instance.HasDebuggingToolAttached() && new_module && !debug_name.empty()) {
         SetObjectName(device, new_module, debug_name);
     }
     return new_module;
