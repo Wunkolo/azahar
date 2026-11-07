@@ -249,46 +249,43 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
 
     // Create shader modules
     full_screen_vert =
-        Compile(HostShaders::FULL_SCREEN_TRIANGLE_VERT, vk::ShaderStageFlagBits::eVertex, device);
+        MakeShaderModule(HostShaders::FULL_SCREEN_TRIANGLE_VERT, vk::ShaderStageFlagBits::eVertex,
+                         "BlitHelper: full_screen_vert");
 
     vk::ShaderModule d24s8_to_rgba8_comp =
-        Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_COMP, vk::ShaderStageFlagBits::eCompute, device);
-    if (instance.HasDebuggingToolAttached()) {
-        SetObjectName(device, d24s8_to_rgba8_comp, "BlitHelper: d24s8_to_rgba8_comp");
-    }
+        MakeShaderModule(HostShaders::VULKAN_D24S8_TO_RGBA8_COMP, vk::ShaderStageFlagBits::eCompute,
+                         "BlitHelper: d24s8_to_rgba8_comp");
 
     vk::ShaderModule d24s8_to_rgba8_ms_comp;
     if (instance.IsShaderStorageImageMultisample()) {
-        d24s8_to_rgba8_ms_comp = Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_MS_COMP,
-                                         vk::ShaderStageFlagBits::eCompute, device);
-        if (instance.HasDebuggingToolAttached()) {
-            SetObjectName(device, d24s8_to_rgba8_ms_comp, "BlitHelper: d24s8_to_rgba8_ms_comp");
-        }
+        d24s8_to_rgba8_ms_comp = MakeShaderModule(HostShaders::VULKAN_D24S8_TO_RGBA8_MS_COMP,
+                                                  vk::ShaderStageFlagBits::eCompute,
+                                                  "BlitHelper: d24s8_to_rgba8_ms_comp");
     }
 
-    vk::ShaderModule depth_to_buffer_comp = Compile(HostShaders::VULKAN_DEPTH_TO_BUFFER_COMP,
-                                                    vk::ShaderStageFlagBits::eCompute, device);
-    if (instance.HasDebuggingToolAttached()) {
-        SetObjectName(device, depth_to_buffer_comp, "BlitHelper: depth_to_buffer_comp");
-    }
+    vk::ShaderModule depth_to_buffer_comp =
+        MakeShaderModule(HostShaders::VULKAN_DEPTH_TO_BUFFER_COMP,
+                         vk::ShaderStageFlagBits::eCompute, "BlitHelper: depth_to_buffer_comp");
 
     vk::ShaderModule blit_depth_stencil_frag;
     if (instance.IsShaderStencilExportSupported()) {
-        blit_depth_stencil_frag = Compile(HostShaders::VULKAN_BLIT_DEPTH_STENCIL_FRAG,
-                                          vk::ShaderStageFlagBits::eFragment, device);
-        if (instance.HasDebuggingToolAttached()) {
-            SetObjectName(device, blit_depth_stencil_frag, "BlitHelper: blit_depth_stencil_frag");
-        }
+        blit_depth_stencil_frag = MakeShaderModule(HostShaders::VULKAN_BLIT_DEPTH_STENCIL_FRAG,
+                                                   vk::ShaderStageFlagBits::eFragment,
+                                                   "BlitHelper: blit_depth_stencil_frag");
     }
 
     // Texture filtering shader modules
-    refine_frag = Compile(HostShaders::REFINE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
-    bicubic_frag = Compile(HostShaders::BICUBIC_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+    refine_frag = MakeShaderModule(HostShaders::REFINE_FRAG, vk::ShaderStageFlagBits::eFragment,
+                                   "BlitHelper: refine_frag");
+    bicubic_frag = MakeShaderModule(HostShaders::BICUBIC_FRAG, vk::ShaderStageFlagBits::eFragment,
+                                    "BlitHelper: bicubic_frag");
     scale_force_frag =
-        Compile(HostShaders::SCALE_FORCE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
-    xbrz_frag =
-        Compile(HostShaders::XBRZ_FREESCALE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
-    mmpx_frag = Compile(HostShaders::MMPX_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+        MakeShaderModule(HostShaders::SCALE_FORCE_FRAG, vk::ShaderStageFlagBits::eFragment,
+                         "BlitHelper: scale_force_frag");
+    xbrz_frag = MakeShaderModule(HostShaders::XBRZ_FREESCALE_FRAG,
+                                 vk::ShaderStageFlagBits::eFragment, "BlitHelper: xbrz_frag");
+    mmpx_frag = MakeShaderModule(HostShaders::MMPX_FRAG, vk::ShaderStageFlagBits::eFragment,
+                                 "BlitHelper: mmpx_frag");
 
     // Create pipeines
     d24s8_to_rgba8_pipeline = MakeComputePipeline(d24s8_to_rgba8_comp, compute_pipeline_layout);
@@ -327,7 +324,6 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
                       "BlitHelper: single_texture_pipeline_layout");
         SetObjectName(device, three_textures_pipeline_layout,
                       "BlitHelper: three_textures_pipeline_layout");
-        SetObjectName(device, full_screen_vert, "BlitHelper: full_screen_vert");
         SetObjectName(device, d24s8_to_rgba8_pipeline, "BlitHelper: d24s8_to_rgba8_pipeline");
         if (d24s8_to_rgba8_ms_pipeline) {
             SetObjectName(device, d24s8_to_rgba8_ms_pipeline,
@@ -740,7 +736,17 @@ void BlitHelper::ResolveTexture(Surface& surface) {
     });
 }
 
-vk::Pipeline BlitHelper::MakeComputePipeline(vk::ShaderModule shader, vk::PipelineLayout layout) {
+vk::ShaderModule BlitHelper::MakeShaderModule(std::string_view code, vk::ShaderStageFlagBits stage,
+                                              std::string_view debug_name) const {
+    vk::ShaderModule new_module = Compile(code, stage, device);
+    if (new_module && instance.HasDebuggingToolAttached()) {
+        SetObjectName(device, new_module, debug_name);
+    }
+    return new_module;
+}
+
+vk::Pipeline BlitHelper::MakeComputePipeline(vk::ShaderModule shader,
+                                             vk::PipelineLayout layout) const {
     const vk::ComputePipelineCreateInfo compute_info = {
         .stage = MakeStages(shader),
         .layout = layout,
@@ -756,7 +762,7 @@ vk::Pipeline BlitHelper::MakeComputePipeline(vk::ShaderModule shader, vk::Pipeli
 }
 
 vk::Pipeline BlitHelper::MakeDepthStencilBlitPipeline(vk::ShaderModule vert_pipeline,
-                                                      vk::ShaderModule frag_pipeline) {
+                                                      vk::ShaderModule frag_pipeline) const {
     const std::array stages = MakeStages(vert_pipeline, frag_pipeline);
     const auto renderpass = renderpass_cache.GetRenderpass(VideoCore::PixelFormat::Invalid,
                                                            VideoCore::PixelFormat::D24S8, false);

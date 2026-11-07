@@ -42,9 +42,12 @@ public:
     void ResolveTexture(Surface& surface);
 
 private:
-    vk::Pipeline MakeComputePipeline(vk::ShaderModule shader, vk::PipelineLayout layout);
+    vk::ShaderModule MakeShaderModule(std::string_view code, vk::ShaderStageFlagBits stage,
+                                      std::string_view debug_name = "") const;
+
+    vk::Pipeline MakeComputePipeline(vk::ShaderModule shader, vk::PipelineLayout layout) const;
     vk::Pipeline MakeDepthStencilBlitPipeline(vk::ShaderModule vert_pipeline,
-                                              vk::ShaderModule frag_pipeline);
+                                              vk::ShaderModule frag_pipeline) const;
     vk::Pipeline MakeFilterPipeline(
         vk::ShaderModule fragment_shader, vk::PipelineLayout layout,
         VideoCore::PixelFormat color_format = VideoCore::PixelFormat::RGBA8);
