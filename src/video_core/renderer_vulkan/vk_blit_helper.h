@@ -43,7 +43,8 @@ public:
 
 private:
     vk::Pipeline MakeComputePipeline(vk::ShaderModule shader, vk::PipelineLayout layout);
-    vk::Pipeline MakeDepthStencilBlitPipeline();
+    vk::Pipeline MakeDepthStencilBlitPipeline(vk::ShaderModule vert_pipeline,
+                                              vk::ShaderModule frag_pipeline);
     vk::Pipeline MakeFilterPipeline(
         vk::ShaderModule fragment_shader, vk::PipelineLayout layout,
         VideoCore::PixelFormat color_format = VideoCore::PixelFormat::RGBA8);
@@ -84,15 +85,13 @@ private:
     vk::PipelineLayout three_textures_pipeline_layout;
 
     vk::ShaderModule full_screen_vert;
-    vk::ShaderModule d24s8_to_rgba8_comp;
-    vk::ShaderModule d24s8_to_rgba8_ms_comp;
-    vk::ShaderModule depth_to_buffer_comp;
-    vk::ShaderModule blit_depth_stencil_frag;
+
+    /// Texture filtering shader modules
+    vk::ShaderModule refine_frag;
     vk::ShaderModule bicubic_frag;
     vk::ShaderModule scale_force_frag;
     vk::ShaderModule xbrz_frag;
     vk::ShaderModule mmpx_frag;
-    vk::ShaderModule refine_frag;
 
     vk::Pipeline d24s8_to_rgba8_pipeline;
     vk::Pipeline d24s8_to_rgba8_ms_pipeline;

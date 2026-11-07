@@ -234,51 +234,87 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
       single_texture_provider{instance, scheduler.GetMasterSemaphore(), SINGLE_TEXTURE_BINDINGS,
                               16},
       three_textures_provider{instance, scheduler.GetMasterSemaphore(), THREE_TEXTURES_BINDINGS,
-                              16},
-      compute_pipeline_layout{
-          device.createPipelineLayout(PipelineLayoutCreateInfo(&compute_provider.Layout(), true))},
-      compute_buffer_pipeline_layout{device.createPipelineLayout(
-          PipelineLayoutCreateInfo(&compute_buffer_provider.Layout(), true))},
-      two_textures_pipeline_layout{
-          device.createPipelineLayout(PipelineLayoutCreateInfo(&two_textures_provider.Layout()))},
-      single_texture_pipeline_layout{device.createPipelineLayout(
-          PipelineLayoutCreateInfo(&single_texture_provider.Layout(), false, true))},
-      three_textures_pipeline_layout{device.createPipelineLayout(
-          PipelineLayoutCreateInfo(&three_textures_provider.Layout(), false, true))},
-      full_screen_vert{Compile(HostShaders::FULL_SCREEN_TRIANGLE_VERT,
-                               vk::ShaderStageFlagBits::eVertex, device)},
-      d24s8_to_rgba8_comp{Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_COMP,
-                                  vk::ShaderStageFlagBits::eCompute, device)},
-      d24s8_to_rgba8_ms_comp{instance_.IsMultiSampleSupported()
-                                 ? Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_MS_COMP,
-                                           vk::ShaderStageFlagBits::eCompute, device)
-                                 : VK_NULL_HANDLE},
-      depth_to_buffer_comp{Compile(HostShaders::VULKAN_DEPTH_TO_BUFFER_COMP,
-                                   vk::ShaderStageFlagBits::eCompute, device)},
-      blit_depth_stencil_frag{VK_NULL_HANDLE},
-      // Texture filtering shader modules
-      bicubic_frag{Compile(HostShaders::BICUBIC_FRAG, vk::ShaderStageFlagBits::eFragment, device)},
-      scale_force_frag{
-          Compile(HostShaders::SCALE_FORCE_FRAG, vk::ShaderStageFlagBits::eFragment, device)},
-      xbrz_frag{
-          Compile(HostShaders::XBRZ_FREESCALE_FRAG, vk::ShaderStageFlagBits::eFragment, device)},
-      mmpx_frag{Compile(HostShaders::MMPX_FRAG, vk::ShaderStageFlagBits::eFragment, device)},
-      refine_frag{Compile(HostShaders::REFINE_FRAG, vk::ShaderStageFlagBits::eFragment, device)},
-      d24s8_to_rgba8_pipeline{MakeComputePipeline(d24s8_to_rgba8_comp, compute_pipeline_layout)},
-      d24s8_to_rgba8_ms_pipeline{
-          instance_.IsMultiSampleSupported()
-              ? MakeComputePipeline(d24s8_to_rgba8_ms_comp, compute_pipeline_layout)
-              : VK_NULL_HANDLE},
-      depth_to_buffer_pipeline{
-          MakeComputePipeline(depth_to_buffer_comp, compute_buffer_pipeline_layout)},
-      depth_blit_pipeline{VK_NULL_HANDLE},
-      linear_sampler{device.createSampler(SAMPLER_CREATE_INFO<vk::Filter::eLinear>)},
-      nearest_sampler{device.createSampler(SAMPLER_CREATE_INFO<vk::Filter::eNearest>)} {
+                              16} {
 
+    compute_pipeline_layout =
+        device.createPipelineLayout(PipelineLayoutCreateInfo(&compute_provider.Layout(), true));
+    compute_buffer_pipeline_layout = device.createPipelineLayout(
+        PipelineLayoutCreateInfo(&compute_buffer_provider.Layout(), true));
+    two_textures_pipeline_layout =
+        device.createPipelineLayout(PipelineLayoutCreateInfo(&two_textures_provider.Layout()));
+    single_texture_pipeline_layout = device.createPipelineLayout(
+        PipelineLayoutCreateInfo(&single_texture_provider.Layout(), false, true));
+    three_textures_pipeline_layout = device.createPipelineLayout(
+        PipelineLayoutCreateInfo(&three_textures_provider.Layout(), false, true));
+
+    // Create shader modules
+    full_screen_vert =
+        Compile(HostShaders::FULL_SCREEN_TRIANGLE_VERT, vk::ShaderStageFlagBits::eVertex, device);
+
+    vk::ShaderModule d24s8_to_rgba8_comp =
+        Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_COMP, vk::ShaderStageFlagBits::eCompute, device);
+    if (instance.HasDebuggingToolAttached()) {
+        SetObjectName(device, d24s8_to_rgba8_comp, "BlitHelper: d24s8_to_rgba8_comp");
+    }
+
+    vk::ShaderModule d24s8_to_rgba8_ms_comp;
+    if (instance.IsShaderStorageImageMultisample()) {
+        d24s8_to_rgba8_ms_comp = Compile(HostShaders::VULKAN_D24S8_TO_RGBA8_MS_COMP,
+                                         vk::ShaderStageFlagBits::eCompute, device);
+        if (instance.HasDebuggingToolAttached()) {
+            SetObjectName(device, d24s8_to_rgba8_ms_comp, "BlitHelper: d24s8_to_rgba8_ms_comp");
+        }
+    }
+
+    vk::ShaderModule depth_to_buffer_comp = Compile(HostShaders::VULKAN_DEPTH_TO_BUFFER_COMP,
+                                                    vk::ShaderStageFlagBits::eCompute, device);
+    if (instance.HasDebuggingToolAttached()) {
+        SetObjectName(device, depth_to_buffer_comp, "BlitHelper: depth_to_buffer_comp");
+    }
+
+    vk::ShaderModule blit_depth_stencil_frag;
     if (instance.IsShaderStencilExportSupported()) {
         blit_depth_stencil_frag = Compile(HostShaders::VULKAN_BLIT_DEPTH_STENCIL_FRAG,
                                           vk::ShaderStageFlagBits::eFragment, device);
-        depth_blit_pipeline = MakeDepthStencilBlitPipeline();
+        if (instance.HasDebuggingToolAttached()) {
+            SetObjectName(device, blit_depth_stencil_frag, "BlitHelper: blit_depth_stencil_frag");
+        }
+    }
+
+    // Texture filtering shader modules
+    refine_frag = Compile(HostShaders::REFINE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+    bicubic_frag = Compile(HostShaders::BICUBIC_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+    scale_force_frag =
+        Compile(HostShaders::SCALE_FORCE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+    xbrz_frag =
+        Compile(HostShaders::XBRZ_FREESCALE_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+    mmpx_frag = Compile(HostShaders::MMPX_FRAG, vk::ShaderStageFlagBits::eFragment, device);
+
+    // Create pipeines
+    d24s8_to_rgba8_pipeline = MakeComputePipeline(d24s8_to_rgba8_comp, compute_pipeline_layout);
+    if (instance.IsShaderStorageImageMultisample()) {
+        d24s8_to_rgba8_ms_pipeline =
+            MakeComputePipeline(d24s8_to_rgba8_ms_comp, compute_pipeline_layout);
+    }
+    depth_to_buffer_pipeline =
+        MakeComputePipeline(depth_to_buffer_comp, compute_buffer_pipeline_layout);
+    if (instance.IsShaderStencilExportSupported()) {
+        depth_blit_pipeline =
+            MakeDepthStencilBlitPipeline(full_screen_vert, blit_depth_stencil_frag);
+    }
+
+    // Samplers
+    linear_sampler = device.createSampler(SAMPLER_CREATE_INFO<vk::Filter::eLinear>);
+    nearest_sampler = device.createSampler(SAMPLER_CREATE_INFO<vk::Filter::eNearest>);
+
+    // Some shader modules are not needed anymore
+    device.destroyShaderModule(d24s8_to_rgba8_comp);
+    if (d24s8_to_rgba8_ms_comp) {
+        device.destroyShaderModule(d24s8_to_rgba8_ms_comp);
+    }
+    device.destroyShaderModule(depth_to_buffer_comp);
+    if (blit_depth_stencil_frag) {
+        device.destroyShaderModule(blit_depth_stencil_frag);
     }
 
     if (instance.HasDebuggingToolAttached()) {
@@ -292,14 +328,6 @@ BlitHelper::BlitHelper(const Instance& instance_, Scheduler& scheduler_,
         SetObjectName(device, three_textures_pipeline_layout,
                       "BlitHelper: three_textures_pipeline_layout");
         SetObjectName(device, full_screen_vert, "BlitHelper: full_screen_vert");
-        SetObjectName(device, d24s8_to_rgba8_comp, "BlitHelper: d24s8_to_rgba8_comp");
-        if (d24s8_to_rgba8_ms_comp) {
-            SetObjectName(device, d24s8_to_rgba8_ms_comp, "BlitHelper: d24s8_to_rgba8_ms_comp");
-        }
-        SetObjectName(device, depth_to_buffer_comp, "BlitHelper: depth_to_buffer_comp");
-        if (blit_depth_stencil_frag) {
-            SetObjectName(device, blit_depth_stencil_frag, "BlitHelper: blit_depth_stencil_frag");
-        }
         SetObjectName(device, d24s8_to_rgba8_pipeline, "BlitHelper: d24s8_to_rgba8_pipeline");
         if (d24s8_to_rgba8_ms_pipeline) {
             SetObjectName(device, d24s8_to_rgba8_ms_pipeline,
@@ -324,15 +352,9 @@ BlitHelper::~BlitHelper() {
     device.destroyPipelineLayout(two_textures_pipeline_layout);
     device.destroyPipelineLayout(single_texture_pipeline_layout);
     device.destroyPipelineLayout(three_textures_pipeline_layout);
+
     device.destroyShaderModule(full_screen_vert);
-    device.destroyShaderModule(d24s8_to_rgba8_comp);
-    if (d24s8_to_rgba8_ms_comp) {
-        device.destroyShaderModule(d24s8_to_rgba8_ms_comp);
-    }
-    device.destroyShaderModule(depth_to_buffer_comp);
-    if (blit_depth_stencil_frag) {
-        device.destroyShaderModule(blit_depth_stencil_frag);
-    }
+
     // Destroy texture filtering shader modules
     device.destroyShaderModule(bicubic_frag);
     device.destroyShaderModule(scale_force_frag);
@@ -427,7 +449,7 @@ bool BlitHelper::ConvertDS24S8ToRGBA8(Surface& source, Surface& dest,
     const bool multisample = (source.sample_count > 1) && (dest.sample_count > 1);
     const Type src_type = multisample ? Type::MultiSampled : Type::Current;
 
-    if (multisample && !instance.IsMultiSampleSupported()) {
+    if (multisample && !instance.IsShaderStorageImageMultisample()) {
         LOG_ERROR(Render_Vulkan,
                   "Multisampled DS24S8->RGBA8 conversion is not supported on this device");
         return false;
@@ -733,8 +755,9 @@ vk::Pipeline BlitHelper::MakeComputePipeline(vk::ShaderModule shader, vk::Pipeli
     }
 }
 
-vk::Pipeline BlitHelper::MakeDepthStencilBlitPipeline() {
-    const std::array stages = MakeStages(full_screen_vert, blit_depth_stencil_frag);
+vk::Pipeline BlitHelper::MakeDepthStencilBlitPipeline(vk::ShaderModule vert_pipeline,
+                                                      vk::ShaderModule frag_pipeline) {
+    const std::array stages = MakeStages(vert_pipeline, frag_pipeline);
     const auto renderpass = renderpass_cache.GetRenderpass(VideoCore::PixelFormat::Invalid,
                                                            VideoCore::PixelFormat::D24S8, false);
     vk::GraphicsPipelineCreateInfo depth_stencil_info = {
