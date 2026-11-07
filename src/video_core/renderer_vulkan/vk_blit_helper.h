@@ -42,6 +42,9 @@ public:
     void ResolveTexture(Surface& surface);
 
 private:
+    vk::PipelineLayout MakePipelineLayout(vk::DescriptorSetLayout descriptor_layout,
+                                          std::string_view debug_name = "",
+                                          bool compute = false, bool filter = false) const;
     vk::ShaderModule MakeShaderModule(std::string_view code, vk::ShaderStageFlagBits stage,
                                       std::string_view debug_name = "") const;
 
@@ -83,8 +86,8 @@ private:
     DescriptorHeap three_textures_provider;
     vk::PipelineLayout compute_pipeline_layout;
     vk::PipelineLayout compute_buffer_pipeline_layout;
-    vk::PipelineLayout two_textures_pipeline_layout;
     vk::PipelineLayout single_texture_pipeline_layout;
+    vk::PipelineLayout two_textures_pipeline_layout;
     vk::PipelineLayout three_textures_pipeline_layout;
 
     vk::ShaderModule full_screen_vert;
