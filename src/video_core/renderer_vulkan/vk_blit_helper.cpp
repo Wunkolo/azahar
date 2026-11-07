@@ -107,7 +107,7 @@ constexpr vk::PipelineVertexInputStateCreateInfo PIPELINE_VERTEX_INPUT_STATE_CRE
 };
 constexpr vk::PipelineInputAssemblyStateCreateInfo PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO{
     .topology = vk::PrimitiveTopology::eTriangleList,
-    .primitiveRestartEnable = VK_FALSE,
+    .primitiveRestartEnable = vk::False,
 };
 constexpr vk::PipelineViewportStateCreateInfo PIPELINE_VIEWPORT_STATE_CREATE_INFO{
     .viewportCount = 1,
@@ -116,12 +116,12 @@ constexpr vk::PipelineViewportStateCreateInfo PIPELINE_VIEWPORT_STATE_CREATE_INF
     .pScissors = nullptr,
 };
 constexpr vk::PipelineRasterizationStateCreateInfo PIPELINE_RASTERIZATION_STATE_CREATE_INFO{
-    .depthClampEnable = VK_FALSE,
-    .rasterizerDiscardEnable = VK_FALSE,
+    .depthClampEnable = vk::False,
+    .rasterizerDiscardEnable = vk::False,
     .polygonMode = vk::PolygonMode::eFill,
     .cullMode = vk::CullModeFlagBits::eBack,
     .frontFace = vk::FrontFace::eClockwise,
-    .depthBiasEnable = VK_FALSE,
+    .depthBiasEnable = vk::False,
     .depthBiasConstantFactor = 0.0f,
     .depthBiasClamp = 0.0f,
     .depthBiasSlopeFactor = 0.0f,
@@ -129,11 +129,11 @@ constexpr vk::PipelineRasterizationStateCreateInfo PIPELINE_RASTERIZATION_STATE_
 };
 constexpr vk::PipelineMultisampleStateCreateInfo PIPELINE_MULTISAMPLE_STATE_CREATE_INFO{
     .rasterizationSamples = vk::SampleCountFlagBits::e1,
-    .sampleShadingEnable = VK_FALSE,
+    .sampleShadingEnable = vk::False,
     .minSampleShading = 0.0f,
     .pSampleMask = nullptr,
-    .alphaToCoverageEnable = VK_FALSE,
-    .alphaToOneEnable = VK_FALSE,
+    .alphaToCoverageEnable = vk::False,
+    .alphaToOneEnable = vk::False,
 };
 constexpr std::array DYNAMIC_STATES{
     vk::DynamicState::eViewport,
@@ -145,22 +145,22 @@ constexpr vk::PipelineDynamicStateCreateInfo PIPELINE_DYNAMIC_STATE_CREATE_INFO{
 };
 
 constexpr vk::PipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT{
-    .blendEnable = VK_FALSE,
+    .blendEnable = vk::False,
     .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
 };
 
 constexpr vk::PipelineColorBlendStateCreateInfo PIPELINE_COLOR_BLEND_STATE_CREATE_INFO{
-    .logicOpEnable = VK_FALSE,
+    .logicOpEnable = vk::False,
     .attachmentCount = 1,
     .pAttachments = &COLOR_BLEND_ATTACHMENT,
 };
 constexpr vk::PipelineDepthStencilStateCreateInfo PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO{
-    .depthTestEnable = VK_TRUE,
-    .depthWriteEnable = VK_TRUE,
+    .depthTestEnable = vk::True,
+    .depthWriteEnable = vk::True,
     .depthCompareOp = vk::CompareOp::eAlways,
-    .depthBoundsTestEnable = VK_FALSE,
-    .stencilTestEnable = VK_FALSE,
+    .depthBoundsTestEnable = vk::False,
+    .stencilTestEnable = vk::False,
     .front = vk::StencilOpState{},
     .back = vk::StencilOpState{},
     .minDepthBounds = 0.0f,
@@ -176,14 +176,14 @@ inline constexpr vk::SamplerCreateInfo SAMPLER_CREATE_INFO{
     .addressModeV = vk::SamplerAddressMode::eClampToEdge,
     .addressModeW = vk::SamplerAddressMode::eClampToEdge,
     .mipLodBias = 0.0f,
-    .anisotropyEnable = VK_FALSE,
+    .anisotropyEnable = vk::False,
     .maxAnisotropy = 0.0f,
-    .compareEnable = VK_FALSE,
+    .compareEnable = vk::False,
     .compareOp = vk::CompareOp::eNever,
     .minLod = 0.0f,
     .maxLod = 0.0f,
     .borderColor = vk::BorderColor::eFloatOpaqueWhite,
-    .unnormalizedCoordinates = VK_FALSE,
+    .unnormalizedCoordinates = vk::False,
 };
 
 constexpr vk::PipelineLayoutCreateInfo PipelineLayoutCreateInfo(
@@ -474,16 +474,16 @@ bool BlitHelper::ConvertDS24S8ToRGBA8(Surface& source, Surface& dest,
                 .dstAccessMask = vk::AccessFlagBits::eShaderRead,
                 .oldLayout = vk::ImageLayout::eGeneral,
                 .newLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = src_image,
                 .subresourceRange{
                     .aspectMask =
                         vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
                     .baseMipLevel = 0,
-                    .levelCount = VK_REMAINING_MIP_LEVELS,
+                    .levelCount = vk::RemainingMipLevels,
                     .baseArrayLayer = 0,
-                    .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                    .layerCount = vk::RemainingArrayLayers,
                 },
             },
             vk::ImageMemoryBarrier{
@@ -491,15 +491,15 @@ bool BlitHelper::ConvertDS24S8ToRGBA8(Surface& source, Surface& dest,
                 .dstAccessMask = vk::AccessFlagBits::eShaderWrite,
                 .oldLayout = vk::ImageLayout::eUndefined,
                 .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = dst_image,
                 .subresourceRange{
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
                     .baseMipLevel = 0,
-                    .levelCount = VK_REMAINING_MIP_LEVELS,
+                    .levelCount = vk::RemainingMipLevels,
                     .baseArrayLayer = 0,
-                    .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                    .layerCount = vk::RemainingArrayLayers,
                 },
             },
         };
@@ -510,16 +510,16 @@ bool BlitHelper::ConvertDS24S8ToRGBA8(Surface& source, Surface& dest,
                                  vk::AccessFlagBits::eDepthStencilAttachmentRead,
                 .oldLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal,
                 .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = src_image,
                 .subresourceRange{
                     .aspectMask =
                         vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
                     .baseMipLevel = 0,
-                    .levelCount = VK_REMAINING_MIP_LEVELS,
+                    .levelCount = vk::RemainingMipLevels,
                     .baseArrayLayer = 0,
-                    .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                    .layerCount = vk::RemainingArrayLayers,
                 },
             },
             vk::ImageMemoryBarrier{
@@ -527,15 +527,15 @@ bool BlitHelper::ConvertDS24S8ToRGBA8(Surface& source, Surface& dest,
                 .dstAccessMask = vk::AccessFlagBits::eTransferRead,
                 .oldLayout = vk::ImageLayout::eGeneral,
                 .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = dst_image,
                 .subresourceRange{
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
                     .baseMipLevel = 0,
-                    .levelCount = VK_REMAINING_MIP_LEVELS,
+                    .levelCount = vk::RemainingMipLevels,
                     .baseArrayLayer = 0,
-                    .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                    .layerCount = vk::RemainingArrayLayers,
                 },
             }};
         cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests |
@@ -590,15 +590,15 @@ bool BlitHelper::DepthToBuffer(Surface& source, vk::Buffer buffer,
             .dstAccessMask = vk::AccessFlagBits::eShaderRead,
             .oldLayout = vk::ImageLayout::eGeneral,
             .newLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
             .image = src_image,
             .subresourceRange{
                 .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
                 .baseMipLevel = 0,
-                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .levelCount = vk::RemainingMipLevels,
                 .baseArrayLayer = 0,
-                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                .layerCount = vk::RemainingArrayLayers,
             },
         };
         const vk::ImageMemoryBarrier post_barrier = {
@@ -607,15 +607,15 @@ bool BlitHelper::DepthToBuffer(Surface& source, vk::Buffer buffer,
                              vk::AccessFlagBits::eDepthStencilAttachmentRead,
             .oldLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal,
             .newLayout = vk::ImageLayout::eGeneral,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
             .image = src_image,
             .subresourceRange{
                 .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
                 .baseMipLevel = 0,
-                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .levelCount = vk::RemainingMipLevels,
                 .baseArrayLayer = 0,
-                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                .layerCount = vk::RemainingArrayLayers,
             },
         };
         cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eEarlyFragmentTests |
@@ -681,7 +681,7 @@ void BlitHelper::ResolveTexture(Surface& surface) {
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
-            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+            .layerCount = vk::RemainingArrayLayers,
         };
 
         const std::array read_barriers = {
@@ -690,8 +690,8 @@ void BlitHelper::ResolveTexture(Surface& surface) {
                 .dstAccessMask = vk::AccessFlagBits::eTransferRead,
                 .oldLayout = vk::ImageLayout::eGeneral,
                 .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = msaa_image,
                 .subresourceRange = subresource_range,
             },
@@ -700,8 +700,8 @@ void BlitHelper::ResolveTexture(Surface& surface) {
                 .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
                 .oldLayout = vk::ImageLayout::eGeneral,
                 .newLayout = vk::ImageLayout::eTransferDstOptimal,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = dest_image,
                 .subresourceRange = subresource_range,
             },
@@ -712,8 +712,8 @@ void BlitHelper::ResolveTexture(Surface& surface) {
                 .dstAccessMask = access_flags,
                 .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
                 .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = msaa_image,
                 .subresourceRange = subresource_range,
             },
@@ -722,8 +722,8 @@ void BlitHelper::ResolveTexture(Surface& surface) {
                 .dstAccessMask = access_flags,
                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
                 .newLayout = vk::ImageLayout::eGeneral,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .image = dest_image,
                 .subresourceRange = subresource_range,
             },
