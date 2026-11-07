@@ -256,11 +256,16 @@ public:
         return triangle_fan_supported;
     }
 
-    // Returns true when shaderStorageImageMultisample, sampleRateShading,
-    // VK_KHR_create_renderpass2, VK_KHR_depth_stencil_resolve
+    /// Returns true when shaderStorageImageMultisample is supported
+    bool IsShaderStorageImageMultisample() const {
+        return features.shaderStorageImageMultisample;
+    }
+
+    /// Returns true when shaderStorageImageMultisample, sampleRateShading,
+    /// VK_KHR_create_renderpass2, VK_KHR_depth_stencil_resolve is supported
     bool IsMultiSampleSupported() const {
-        return features.shaderStorageImageMultisample && features.sampleRateShading &&
-               create_renderpass2 && depth_stencil_resolve;
+        return IsShaderStorageImageMultisample() && features.sampleRateShading && create_renderpass2 &&
+               depth_stencil_resolve;
     }
 
     /// Returns true if dynamic indices can be used inside shaders.
